@@ -1,0 +1,212 @@
+import os
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+
+CSV_FILE = "bmw_showroom.csv"
+
+
+def setup_initial_showroom():
+    """Creates an expanded starting inventory representing a major BMW dealership."""
+    if not os.path.exists(CSV_FILE):
+       
+        data = {
+            "Car_ID": [101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118],
+            "Model": ["M2", "M3", "M3", "M4", "M5", "M8", "X1", "X3", "X4", "X5", "X5", "X7", "i4", "i7", "i7", "M4", "X3", "iX"],
+            "Color": ["Zandvoort Blue", "Isle of Man Green", "Black Sapphire", "Sao Paulo Yellow", "Marina Bay Blue", "Sonic Speed Blue", "Utah Orange", "Phytonic Blue", "Piemont Red", "Mineral White", "Carbon Black", "Dravit Grey", "Portimao Blue", "Oxide Grey", "Black Sapphire", "Alpine White", "Brooklyn Grey", "Storm Bay Metallic"],
+            "Variant": ["Coupe Standard", "Competition xDrive", "Standard Manual", "Competition Coupe", "CS Performance", "Competition Grand Coupe", "sDrive20i xLine", "xDrive30i M Sport", "xDrive30i M Sport", "xDrive40i Premium", "M60i V8", "xDrive40i Excellence", "eDrive40 Gran Coupe", "M70 xDrive", "eDrive50 Excellence", "Standard Coupe", "xDrive30i Executive", "xDrive50 Sports"],
+            "Price": [65000, 85000, 78000, 79000, 122000, 134000, 43000, 49000, 55000, 75000, 90000, 110000, 62000, 120000, 105000, 74000, 52000, 87000],
+            "Stock": [4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4],
+        }
+        df = pd.DataFrame(data)
+        df.to_csv(CSV_FILE, index=False)
+
+
+def show_inventory():
+    """Displays the current showroom stock table and opens a Matplotlib chart window."""
+    if os.path.exists(CSV_FILE):
+        df = pd.read_csv(CSV_FILE)
+        
+        print("\n" + "=" * 55)
+        print("          LIVE SHOWROOM INVENTORY MATRIX")
+        print("=" * 55)
+        print(df[["Car_ID", "Model", "Color", "Variant", "Price", "Stock"]].to_string(index=False))
+        print("=" * 55)
+        
+      
+        print("\n Generating and displaying stock chart visualization window...")
+
+        model_stock = df.groupby("Model")["Stock"].sum().reset_index()
+        
+        plt.figure(figsize=(10, 6))
+        
+        bars = plt.bar(model_stock["Model"], model_stock["Stock"], color="#ffa500", edgecolor="black", width=0.6)
+        
+        plt.title("Current Showroom Available Stock per Car Model Line", fontsize=15, fontweight="bold", pad=16)
+        plt.xlabel("BMW Model ", fontsize=12, labelpad=10)
+        plt.ylabel("Available Stock In NARENDRAN'S BMW SHOWROOM", fontsize=12, labelpad=10)
+        plt.ylim(0, max(model_stock["Stock"]) + 2) 
+        plt.grid(axis='y', linestyle=':', alpha=0.7)
+        
+        for bar in bars:
+            height = bar.get_height()
+            plt.text(bar.get_x() + bar.get_width()/2.0, height + 0.1, f'{int(height)}', ha='center', va='bottom', fontweight='bold')
+            
+        plt.tight_layout()
+        plt.show() 
+        print("===============================================================")
+
+
+def process_customer_purchase():
+    print("\n==================================================")
+    print("  $$$$$$$$$$$$$$$$WELCOME TO THE NARENDRAN'SBMW CAR SHOWROOM$$$$$$$$$$$$$$")
+    print("      *********** WELCOME BY NARENDRANR*******************              ")
+    print("==================================================")
+
+    df = pd.read_csv(CSV_FILE)
+
+   
+    visit_purpose = input("Are you looking to purchase today, or just browsing our latest arrivals? (buy/browse): ").strip().lower()
+    if visit_purpose == "browse":
+        print("\nFeel free to look around, sir! Let us know if you want to take a test drive.")
+        return
+
+    
+    available_models = sorted(df["Model"].unique())
+    print(f"\nAvailable BMW Model Lines Today: {', '.join(available_models)}")
+    chosen_model = input("What model of BMW car are you looking for?: ").strip()
+
+   
+    model_filter = df[df["Model"].str.upper() == chosen_model.upper()]
+
+    if model_filter.empty:
+        print(f"Sorry sir, we do not showcase the '{chosen_model}' model line in this showroom.")
+        return
+    
+    print("\n" + "-" * 40)
+    print(f"    PRICING & SPECIFICATION FOR BMW {chosen_model.upper()}")
+    print("-" * 40)
+    unique_prices = model_filter["Price"].unique()
+    
+    if len(unique_prices) == 1:
+        print(f"Standard Model Base Price: ${unique_prices[0]:,}")
+    else:
+        print("Available configurations and pricing tiers:")
+        for idx, row in model_filter.iterrows():
+            print(f" • {row['Variant']} Trimline: ${row['Price']:,}")
+    print("-" * 40 + "\n")
+
+  
+    total_model_stock = np.sum(model_filter["Stock"].to_numpy())
+    if total_model_stock == 0:
+        print("Sorry sir, this entire model line is currently sold out. New allocations arriving next month!")
+        return
+
+    
+    available_colors = model_filter["Color"].unique()
+    print(f"Available Metallic & Matte Finishes for BMW {chosen_model}: {', '.join(available_colors)}")
+    chosen_color = input("What color do you need?: ").strip()
+
+    color_filter = model_filter[model_filter["Color"].str.upper() == chosen_color.upper()]
+
+    if color_filter.empty:
+        print("Sorry sir, we do not have that specific color allocation available for this model layout.")
+        return
+
+    
+    print(f"\nAvailable variants tailored in {chosen_color}:")
+    for idx, row in color_filter.iterrows():
+        print(f" - {row['Variant']} (Available Units: {row['Stock']})")
+    
+    chosen_variant = input("Which variant configuration fits your driving style?: ").strip()
+    
+    final_car = color_filter[color_filter["Variant"].str.upper() == chosen_variant.upper()]
+    
+    if final_car.empty:
+        print("Invalid variant choice selected.")
+        return
+    
+    car_index = final_car.index[0]
+    current_stock = df.at[car_index, "Stock"]
+    car_base_price = df.at[car_index, "Price"]
+    
+    if current_stock <= 0:
+        print("Sorry sir, this exact setup was just reserved. It will be back in stock soon.")
+        return
+
+    
+    print("\n---  DEALERSHIP FINANCE & VALUE EVALUATION ---")
+    trade_in = input("Do you have a vehicle you would like to trade-in or exchange with us? (yes/no): ").strip().lower()
+    if trade_in in ["yes", "y"]:
+        print(" Excellent. Our valuation team will inspect your car during your paperwork phase.")
+        
+    finance_choice = input("Will you be choosing a BMW Financial Service Loan plan or making an Outright Purchase? (loan/cash): ").strip().lower()
+    if finance_choice == "loan":
+        print(" Perfect! We can offer you customized low-interest EMI plans spanning up to 84 months.")
+
+   
+    print("\n ALLOCATION SECURED. Please provide your booking and registration profiles:")
+    name = input("Enter your Name: ").strip()
+    license_no = input("Enter your Driving License Number:= ").strip()
+    aadhaar_no = input("Enter your Aadhaar Card Number:= ").strip()
+    address = input("Enter your Residential Address:= ").strip()
+
+   
+    df.at[car_index, "Stock"] -= 1
+    df.to_csv(CSV_FILE, index=False)
+
+  
+    insurance_premium = 7800
+    total_on_road_estimate = car_base_price + insurance_premium
+
+    print("\n==================================================================")
+    print(f" CONGRATULATIONS {name.upper()}! YOUR NEW BMW IS RESERVED ")
+    print("==================================================================")
+    print(f" Vehicle Ordered : BMW {chosen_model} ({chosen_variant})")
+    print(f" Exterior Paint  : {chosen_color}")
+    print(f" Base Vehicle Cost: ${car_base_price:,}")
+    print(f" Comprehensive Insurance Premium: ${insurance_premium:,}")
+    print(f" Total Investment Value (Est.): ${total_on_road_estimate:,}")
+    print("------------------------------------------------------------------")
+    print(" SHOWROOM GIFTS COMPLIMENTED FOR YOU:")
+    print("   First two vehicle services are completely FREE from our side!")
+    print("   Premium BMW M-Series Merchandise Lifestyle Accessory Kit!")
+    print("\n CELEBRATION MOMENT:")
+    print(" 'From our showroom side, we have organized a special custom Cake cutting")
+    print("  ceremony right here in our lounge for you and your family right now!'")
+    print("==================================================================")
+  
+    insurance_choice = input("\nWould you like to bind and activate our official $9,500 insurance plan directly to your booking? (yes/no): ").strip().lower()
+    
+    if insurance_choice in ["yes", "y"]:
+        print("\n---  Digital Insurance Registration Form ---")
+        rc_book = input("Enter  RC Book  Number:= ").strip()
+        ins_address = input("Enter  Insurance  Address:= ").strip()
+        ins_name = input("Enter Nominated  Holder Full Name:= ").strip()
+        
+        print("\n️ Insurance policy bound successfully!")
+        print(f"Policy Number #BMW-INS-{car_index}929 generated for {ins_name}.")
+    else:
+        print("\nUnderstood. You will need to provide proof of alternative insurance coverage prior to delivery day.")
+
+    print(f"\nThank you for choosing us, {name}. Welcome to the elite BMW owners circle! Drive safe.")
+    
+if __name__ == "__main__":
+
+      while True:
+        print("\n === BMW SHOWROOM CORPORATE INTERACTION MANAGEMENT SYSTEM ===")
+        print("1. PLEASE GET IN TO BUY YOUR BMW CAR FROM OUR NARENDRAN'SBMW SHOWROOM")
+        print("2.  BMW CARS AVAILABLE IN  NARENDRAN'SBMW SHOROOM")
+        print("3. EXIT FROM THE WEBSITE")
+        choice = input("Select operation option: ").strip()
+        
+        if choice == "1":
+            process_customer_purchase()
+        elif choice == "2":
+            show_inventory()
+        elif choice == "3":
+            print("select to exit from the website")
+            break
+        else:
+            print("Invalid Option Selected.")
+
